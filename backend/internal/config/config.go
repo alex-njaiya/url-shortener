@@ -2,7 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -13,11 +16,15 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env found")
+	}
+	
 	cfg := &Config{
-		PORT: getEnv("PORT", "8080"),
-		DB_URL: os.Getenv("DB_URL"),
-		JWTSECRET: os.Getenv("JWTSECRET"),
-		BASEURL: getEnv("BASEURL", "http://localhost:8080"),
+		PORT:      getEnv("PORT", "8080"),
+		DB_URL:    os.Getenv("DATABASE_URL"),
+		JWTSECRET: os.Getenv("JWT_SECRET"),
+		BASEURL:   getEnv("BASE_URL", "http://localhost:8080"),
 	}
 
 	if cfg.DB_URL == "" {
@@ -31,8 +38,7 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-
-func getEnv(key, fallback string,) string {
+func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}

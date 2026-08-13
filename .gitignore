@@ -1,0 +1,72 @@
+# Database data directory (if mounted locally)
+pgdata/
+postgres-data/
+
+# Docker logs and overrides
+.dockeroutput
+docker-compose.override.yml
+
+
+# Compiled binaries
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Go build cache and tooling data
+.golangci-lint.yml
+
+
+
+# Environment secrets
+.env
+.env.local
+.env.production
+.env.development
+
+# Always keep `.env.example` UNIGNORED so other developers know what variables to set!
+!.env.example
+
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+
+# VS Code internal configurations
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/settings.json
+.vscode/extensions.json
+.history/
+
+
+# Generic SQL scratchpads and logs
+*.sql.log
+*.sql.bak
+
+# VS Code Database Client extension files
+.dbclient/
+database-client.config.json
+
+# DBeaver configurations (if used standalone)
+.dbeaver/
+dbeaver-debug.log
+
+# pgAdmin runtime configurations
+.pgadmin/
+pgadmin4.db
