@@ -3,6 +3,7 @@ package shortener
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -12,15 +13,15 @@ type PostgresRepository struct {
 }
 
 type Repository interface {
-	GetShortCodeURL(ctx context.Context, shortCode string) (URL, error)
-	CreateShortCodeURL(ctx context.Context, id int64, shortCode string, OriginalURL string) error
-	ReserveID(ctx context.Context, id int64) (int64, error)
+	GetShortCodeURL(ctx context.Context, shortCode string) (*URL, error)
+	InsertURL(ctx context.Context, id int64, shortCode string, OriginalURL string) (time.Time, error)
+	ReserveID(ctx context.Context) (int64, error)
 }
 
 // handles queries
 // 1. -- getting the shortcode of a url 2. entering/inserting a row of a new url 3. updating the row once the new code is computed
 
-func NewPosgresRepository(pool *pgxpool.Pool) *PostgresRepository {
+func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{
 		pool: pool,
 	}
@@ -39,20 +40,22 @@ func (r *PostgresRepository) GetShortCodeURL(ctx context.Context, shortCode stri
 	return url, err
 }
 
-func (r *PostgresRepository) CreateShortCodeURL(ctx context.Context, id int64, shortCode string, originalURL string) error {
+func (r *PostgresRepository) InsertURL(ctx context.Context, id int64, shortCode string, originalURL string) (time.Time, error) {
 	// instead of using the conventional design of transaction rollbacks we will use the sequence to the get the int
 	// for the next row in the table
+	var timestamp time.Time
 
-	_, err := r.pool.Exec(ctx,
-		`INSERT INTO urls (id, short_code, original_url) VALUES ($1, $2, $3)`,
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO urls (id, short_code, original_url) VALUES ($1, $2, $3)
+		RETURNING created_at`,
 		id, shortCode, originalURL,
-	)
+	).Scan(&timestamp)
 
 	if err != nil {
-		return fmt.Errorf("inserting url: %w", err)
+		return time.Time{}, fmt.Errorf("inserting url: %w", err)
 	}
 
-	return nil
+	return timestamp, nil
 }
 
 func (r *PostgresRepository) ReserveID(ctx context.Context) (int64, error) {
