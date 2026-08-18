@@ -56,7 +56,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-type noopClickLogger struct{}
-
-func (noopClickLogger) LogClick(code, referrer, userAgent string) {}
