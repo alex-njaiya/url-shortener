@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/alex-njaiya/url-shortener/internal/auth"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -43,12 +44,26 @@ type shortenResponse struct {
 func (h *Handler) handleShorten(w http.ResponseWriter, r *http.Request) {
 	var req shortenRequest
 
+	userid, exists := auth.UserIDFromContext(r.Context())
+
+	if !exists {
+		http.Error(w, "userId not found", http.StatusUnauthorized)
+		return
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	u, err := h.service.Shorten(r.Context(), req.URL)
+	// Example guard clause
+	if h.service == nil {
+		http.Error(w, "Internal server error: missing dependency", http.StatusInternalServerError)
+		return
+	}
+
+	// u, err := h.service.ShortenUsingBase62Encode(r.Context(), req.URL)
+	u, err := h.service.ShortenByHashing(r.Context(), &userid, req.URL)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

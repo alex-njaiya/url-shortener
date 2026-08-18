@@ -2,6 +2,8 @@ package shortener
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,7 +18,10 @@ type Repository interface {
 	GetShortCodeURL(ctx context.Context, shortCode string) (*URL, error)
 	InsertURL(ctx context.Context, id int64, shortCode string, OriginalURL string) (time.Time, error)
 	ReserveID(ctx context.Context) (int64, error)
+	InsertURLWhenUsingHashing(ctx context.Context, userId *int64, shortCode, originalURL string) (*URL, error)
 }
+
+var ErrNotFound = errors.New("short url record not found")
 
 // handles queries
 // 1. -- getting the shortcode of a url 2. entering/inserting a row of a new url 3. updating the row once the new code is computed
@@ -34,9 +39,10 @@ func (r *PostgresRepository) GetShortCodeURL(ctx context.Context, shortCode stri
 		shortCode,
 	).Scan(&url.Id, &url.ShortCode, &url.OriginalURL, &url.CreatedAt)
 
-	if err != nil {
-		return nil, fmt.Errorf("fetching url by code: %w", err)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
 	}
+
 	return url, err
 }
 
@@ -56,6 +62,22 @@ func (r *PostgresRepository) InsertURL(ctx context.Context, id int64, shortCode 
 	}
 
 	return timestamp, nil
+}
+
+func (r *PostgresRepository) InsertURLWhenUsingHashing(ctx context.Context, userId *int64, shortCode, originalURL string) (*URL, error) {
+	url := new(URL)
+
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO urls (user_id, short_code, original_url)
+	VALUES ($1, $2, $3) RETURNING id, short_code, original_url, created_at`,
+		userId, shortCode, originalURL,
+	).Scan(&url.Id, &url.ShortCode, &url.OriginalURL, &url.CreatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("adding new url: %w", err)
+	}
+
+	return url, nil
 }
 
 func (r *PostgresRepository) ReserveID(ctx context.Context) (int64, error) {

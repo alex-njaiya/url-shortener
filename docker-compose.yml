@@ -1,5 +1,15 @@
 services:
-  # 1. Database service
+  # 1. migration
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./backend/internal/database/migrations:/migrations
+    command: ["-path", "/migrations", "-database", "${DATABASE_URL}", "up"]
+    depends_on:
+      postgres_db: 
+        condition: service_healthy
+
+  # 2. Database service
   postgres_db:
     image: postgres:alpine
     container_name: local_postgres
@@ -17,7 +27,7 @@ services:
       timeout: 5s
       retries: 5
   
-  # 2. Backend service
+  # 3. Backend service
   backend:
     build: ./backend
     ports:
@@ -30,6 +40,8 @@ services:
     depends_on:
       postgres_db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   pgdata:

@@ -1,2 +1,3 @@
-DROP TABLE clicks;
-DROP TABLE urls;
+DROP TABLE urls
+DROP TABLE clicks
+DROP TABLE users

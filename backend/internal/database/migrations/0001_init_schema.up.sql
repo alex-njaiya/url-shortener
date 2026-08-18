@@ -1,8 +1,8 @@
-CREATE TABLE urls (
-    id          BIGSERIAL PRIMARY KEY,
-    short_code  TEXT NOT NULL UNIQUE,
-    original_url TEXT NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS urls (
+    id SERIAL       PRIMARY KEY,
+    short_code      VARCHAR(10) UNIQUE NOT NULL,
+    original_url    TEXT NOT NULL,
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_urls_short_code ON urls (short_code);
