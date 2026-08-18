@@ -1,0 +1,15 @@
+name: Go + React Url shortener Full stack Deployment
+
+on:
+  push:
+    branches: 
+      - production
+
+jobs:
+#1. test and deploy go backend app
+  deploy-backend:
+    runs_on: ubuntu-latest
+    steps: 
+      - name: Trigger Render Deployment Hook
+        run: |
+          curl -f "${{secrets.RENDER_DEPLOY_HOOK}}"
