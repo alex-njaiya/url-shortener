@@ -6,7 +6,7 @@ on:
       - production
 
 jobs:
-#1. test and deploy go backend app
+#1. test and deploy go backend app. No test for now
   deploy-backend:
     runs_on: ubuntu-latest
     steps: 
