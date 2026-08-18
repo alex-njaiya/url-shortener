@@ -3,7 +3,7 @@ name: Go + React Url shortener Full stack Deployment
 on:
   push:
     branches: 
-      - production
+      - main
 
 jobs:
 #1. test and deploy go backend app. No test for now
