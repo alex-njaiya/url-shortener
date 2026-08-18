@@ -13,9 +13,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
 
 # Create a tiny production image
 FROM alpine:latest
-
-WORKDIR /app
-
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
 COPY --from=builder /app/main .
 
 EXPOSE 8080

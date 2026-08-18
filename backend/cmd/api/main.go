@@ -2,11 +2,15 @@ package main
 
 import (
 	"log"
+	"net/http"
 
+	"github.com/alex-njaiya/url-shortener/internal/analytics"
+	"github.com/alex-njaiya/url-shortener/internal/auth"
 	"github.com/alex-njaiya/url-shortener/internal/config"
 	"github.com/alex-njaiya/url-shortener/internal/database"
+	"github.com/alex-njaiya/url-shortener/internal/httpserver"
+	"github.com/alex-njaiya/url-shortener/internal/shortener"
 )
-
 
 func main() {
 	// load the configs
@@ -26,5 +30,33 @@ func main() {
 
 	defer pool.Close()
 
+	// ANALYTICS
+	analyticsRepo := analytics.NewPostgresRepository(pool)
+	analyticsService := analytics.NewService(analyticsRepo)
+
+	analyticsHandler := analytics.NewHandler(analyticsService)
+
+	// URL SHORTENER
+	shortenerRepo := shortener.NewPostgresRepository(pool)
+	shortenerService := shortener.NewService(shortenerRepo)
+
+	shortenerHandler := shortener.NewHandler(shortenerService, analyticsService, cfg.BASEURL)
+
+	// USER REGISTER AND LOGIN
+	authRepo := auth.NewPostgresRepository(pool)
+	authService := auth.NewService(authRepo)
+
+	authHandler := auth.NewHandler(authService, cfg.JWTSECRET)
+
+	router := httpserver.NewRouter(shortenerHandler, authHandler, analyticsHandler)
+
 	log.Printf("listening on :%s", cfg.PORT)
+
+	if err := http.ListenAndServe(":"+cfg.PORT, router); err != nil {
+		log.Fatal(err)
+	}
 }
+
+type noopClickLogger struct{}
+
+func (noopClickLogger) LogClick(code, referrer, userAgent string) {}
