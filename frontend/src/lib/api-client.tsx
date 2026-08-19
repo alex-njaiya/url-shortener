@@ -68,7 +68,7 @@ export interface MyURL {
 }
 
 export async function getMyUrls(): Promise<MyURL[]> {
-  const res = await fetch(`${API_BASE_URL}/api/my/urls`, {
+  const res = await fetch(`${API_BASE_URL}/api/dashboard`, {
     method: "GET",
     credentials: "include",
     headers: {
