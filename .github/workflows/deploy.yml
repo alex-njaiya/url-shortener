@@ -2,23 +2,21 @@ name: Go + React Url shortener Full stack Deployment
 
 on:
   push:
-    branches: 
+    branches:
       - main
 
 jobs:
-#1. test and deploy go backend app. No test for now
   deploy-backend:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-
       - name: Set up go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
+          cache-dependency-path: backend/go.sum
 
       - name: Install go-migrate
         run: |
@@ -27,13 +25,14 @@ jobs:
 
       - name: Run migration on neon
         run: |
-          migrate -path ./migrations -database "$DATABASE_URL" up
+          migrate -path backend/internal/database/migrations -database "$DATABASE_URL" up
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Build
-        run: go build -o app ./cmd/server
+        working-directory: backend
+        run: go build -o app ./cmd/api
 
       - name: Deploy to render
         run: |
-          curl -X POST "https://render.com{{ secrets.RENDER_SERVICE_ID }}?key={{  secrets.RENDER_API_KEY }}"
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
