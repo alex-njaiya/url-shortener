@@ -52,7 +52,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	// requrie auth to get specific user urls
 	r.With(auth.RequireAuth(h.jwtSecret)).Get("/api/dashboard", h.handleGetMyURLs)
-	r.With(auth.RequireAuth(h.jwtSecret)).Get("/api/auth/debug", h.handleAuthDebug)
+	r.With(auth.OptionalAuth(h.jwtSecret)).Get("/api/auth/debug", h.handleAuthDebug)
 }
 
 type shortenRequest struct {
