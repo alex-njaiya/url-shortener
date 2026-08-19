@@ -40,13 +40,13 @@ func main() {
 	shortenerRepo := shortener.NewPostgresRepository(pool)
 	shortenerService := shortener.NewService(shortenerRepo)
 
-	shortenerHandler := shortener.NewHandler(shortenerService, analyticsService, cfg.BASEURL, cfg.JWTSECRET)
+	shortenerHandler := shortener.NewHandler(shortenerService, analyticsService, cfg.BASEURL, cfg.JWT_SECRET)
 
 	// USER REGISTER AND LOGIN
 	authRepo := auth.NewPostgresRepository(pool)
 	authService := auth.NewService(authRepo)
 
-	authHandler := auth.NewHandler(authService, cfg.JWTSECRET)
+	authHandler := auth.NewHandler(authService, cfg.JWT_SECRET)
 
 	router := httpserver.NewRouter(shortenerHandler, authHandler, analyticsHandler)
 
