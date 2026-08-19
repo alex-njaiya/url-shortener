@@ -2,11 +2,10 @@ package shortener
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,15 +15,11 @@ type PostgresRepository struct {
 
 type Repository interface {
 	GetShortCodeURL(ctx context.Context, shortCode string) (*URL, error)
-	InsertURL(ctx context.Context, id int64, shortCode string, OriginalURL string) (time.Time, error)
-	ReserveID(ctx context.Context) (int64, error)
-	InsertURLWhenUsingHashing(ctx context.Context, userId *int64, shortCode, originalURL string) (*URL, error)
+	InsertURL(ctx context.Context, userId *int64, shortCode, originalURL string) (*URL, error)
+	GetURLsByUserID(ctx context.Context, userId int64) ([]*URL, error)
 }
 
 var ErrNotFound = errors.New("short url record not found")
-
-// handles queries
-// 1. -- getting the shortcode of a url 2. entering/inserting a row of a new url 3. updating the row once the new code is computed
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{
@@ -35,41 +30,27 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 func (r *PostgresRepository) GetShortCodeURL(ctx context.Context, shortCode string) (*URL, error) {
 	url := new(URL)
 	err := r.pool.QueryRow(ctx,
-		`SELECT * FROM urls WHERE short_code = $1`,
+		`SELECT id, short_code, original_url, created_at FROM urls WHERE short_code = $1`,
 		shortCode,
 	).Scan(&url.Id, &url.ShortCode, &url.OriginalURL, &url.CreatedAt)
 
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNotFound
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+
+		return nil, fmt.Errorf("fetching url by code: %w", err)
 	}
 
 	return url, err
 }
 
-func (r *PostgresRepository) InsertURL(ctx context.Context, id int64, shortCode string, originalURL string) (time.Time, error) {
-	// instead of using the conventional design of transaction rollbacks we will use the sequence to the get the int
-	// for the next row in the table
-	var timestamp time.Time
-
-	err := r.pool.QueryRow(ctx,
-		`INSERT INTO urls (id, short_code, original_url) VALUES ($1, $2, $3)
-		RETURNING created_at`,
-		id, shortCode, originalURL,
-	).Scan(&timestamp)
-
-	if err != nil {
-		return time.Time{}, fmt.Errorf("inserting url: %w", err)
-	}
-
-	return timestamp, nil
-}
-
-func (r *PostgresRepository) InsertURLWhenUsingHashing(ctx context.Context, userId *int64, shortCode, originalURL string) (*URL, error) {
+func (r *PostgresRepository) InsertURL(ctx context.Context, userId *int64, shortCode, originalURL string) (*URL, error) {
 	url := new(URL)
 
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO urls (user_id, short_code, original_url)
-	VALUES ($1, $2, $3) RETURNING id, short_code, original_url, created_at`,
+		 VALUES ($1, $2, $3) RETURNING id, short_code, original_url, created_at`,
 		userId, shortCode, originalURL,
 	).Scan(&url.Id, &url.ShortCode, &url.OriginalURL, &url.CreatedAt)
 
@@ -80,28 +61,28 @@ func (r *PostgresRepository) InsertURLWhenUsingHashing(ctx context.Context, user
 	return url, nil
 }
 
-func (r *PostgresRepository) ReserveID(ctx context.Context) (int64, error) {
-	var sequenceName string
-
-	err := r.pool.QueryRow(ctx,
-		`SELECT pg_get_serial_sequence($1, $2)`,
-		"urls", "id",
-	).Scan(&sequenceName)
-
+func (r *PostgresRepository) GetURLsByUserID(ctx context.Context, userID int64) ([]*URL, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, short_code, original_url, created_at FROM urls
+		 WHERE user_id = $1 ORDER BY created_at DESC`,
+		userID,
+	)
 	if err != nil {
-		return 0, fmt.Errorf("looking up sequence name: %w", err)
+		return nil, fmt.Errorf("fetching urls for user: %w", err)
+	}
+	defer rows.Close()
+
+	var urls []*URL
+	for rows.Next() {
+		u := new(URL)
+		if err := rows.Scan(&u.Id, &u.ShortCode, &u.OriginalURL, &u.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scanning url row: %w", err)
+		}
+		urls = append(urls, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating url rows: %w", err)
 	}
 
-	var nextID int64
-
-	err = r.pool.QueryRow(ctx,
-		`SELECT nextval($1)`,
-		sequenceName,
-	).Scan(&nextID)
-
-	if err != nil {
-		return 0, fmt.Errorf("reserving next id: %w", err)
-	}
-
-	return nextID, nil
+	return urls, nil
 }
