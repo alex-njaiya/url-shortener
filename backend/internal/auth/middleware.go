@@ -2,13 +2,13 @@ package auth
 
 import (
 	"context"
+	"log"
 	"net/http"
 )
 
 type contextKey string
 
 const userIDContextKey contextKey = "userID"
-
 
 func RequireAuth(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -21,6 +21,8 @@ func RequireAuth(secret string) func(http.Handler) http.Handler {
 
 			userID, err := ParseToken(cookie.Value, secret)
 			if err != nil {
+				log.Printf("Token parse error: %v", err)
+
 				http.Error(w, "authentication required", http.StatusUnauthorized)
 				return
 			}
@@ -30,7 +32,6 @@ func RequireAuth(secret string) func(http.Handler) http.Handler {
 		})
 	}
 }
-
 
 func OptionalAuth(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -52,7 +53,6 @@ func OptionalAuth(secret string) func(http.Handler) http.Handler {
 		})
 	}
 }
-
 
 func UserIDFromContext(ctx context.Context) (int64, bool) {
 	userID, ok := ctx.Value(userIDContextKey).(int64)

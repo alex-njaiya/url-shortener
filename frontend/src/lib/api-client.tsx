@@ -71,6 +71,9 @@ export async function getMyUrls(): Promise<MyURL[]> {
   const res = await fetch(`${API_BASE_URL}/api/my/urls`, {
     method: "GET",
     credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    }
   });
   if (!res.ok) throw new Error(await res.text() || "Failed to fetch your urls");
   return res.json();

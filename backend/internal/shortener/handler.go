@@ -34,7 +34,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/{code}", h.handleRedirect)
 
 	// requrie auth to get specific user urls
-	r.With(auth.RequireAuth(h.jwtSecret)).Get("/api/my/urls", h.handleGetMyURLs)
+	r.With(auth.RequireAuth(h.jwtSecret)).Get("/api/dashboard", h.handleGetMyURLs)
 }
 
 type shortenRequest struct {
