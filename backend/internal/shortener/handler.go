@@ -22,19 +22,37 @@ type Handler struct {
 
 func NewHandler(service *Service, clicks ClickLogger, baseURL, jwtSecret string) *Handler {
 	return &Handler{
-		service: service,
-		clicks:  clicks,
-		baseURL: baseURL,
+		service:   service,
+		clicks:    clicks,
+		baseURL:   baseURL,
 		jwtSecret: jwtSecret,
 	}
 }
 
+// Debug endpoint to check auth status
+func (h *Handler) handleAuthDebug(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+
+	response := map[string]interface{}{
+		"authenticated": ok,
+		"user_id":       userID,
+		"cookies":       r.Cookies(),
+		"headers": map[string]string{
+			"cookie": r.Header.Get("Cookie"),
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	r.With(auth.OptionalAuth(h.jwtSecret)).Post("/api/shorten",h.handleShorten)
+	r.With(auth.OptionalAuth(h.jwtSecret)).Post("/api/shorten", h.handleShorten)
 	r.Get("/{code}", h.handleRedirect)
 
 	// requrie auth to get specific user urls
 	r.With(auth.RequireAuth(h.jwtSecret)).Get("/api/dashboard", h.handleGetMyURLs)
+	r.With(auth.RequireAuth(h.jwtSecret)).Get("/api/auth/debug", h.handleAuthDebug)
 }
 
 type shortenRequest struct {
@@ -55,14 +73,13 @@ func (h *Handler) handleShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-		// OptionalAuth attaches a user ID only if the request was
+	// OptionalAuth attaches a user ID only if the request was
 	// authenticated. exists == false just means "anonymous" -- not
 	// an error, so no early return here.
 	var userIDPtr *int64
 	if userID, exists := auth.UserIDFromContext(r.Context()); exists {
 		userIDPtr = &userID
 	}
-
 
 	// u, err := h.service.ShortenUsingBase62Encode(r.Context(), req.URL)
 	u, err := h.service.ShortenByHashing(r.Context(), userIDPtr, req.URL)
@@ -96,7 +113,6 @@ func (h *Handler) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, u.OriginalURL, http.StatusFound)
 }
 
-
 type myURLResponse struct {
 	ShortCode   string    `json:"short_code"`
 	ShortURL    string    `json:"short_url"`
@@ -127,4 +143,3 @@ func (h *Handler) handleGetMyURLs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
-

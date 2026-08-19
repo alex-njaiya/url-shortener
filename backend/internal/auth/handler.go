@@ -36,7 +36,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Secure: true,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(tokenExpiry.Seconds()),
-		Domain: ".onrender.com",
+		Domain: "url-shortener-prod-uire.onrender.com",
 	})
 }
 
