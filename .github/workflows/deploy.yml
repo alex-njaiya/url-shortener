@@ -31,7 +31,7 @@ jobs:
 
       - name: Deploy to render
         run: |
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
 
   deploy-frontend:          # <- this job is the frontend deployment
     runs-on: ubuntu-latest
