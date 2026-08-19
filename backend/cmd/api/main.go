@@ -48,7 +48,7 @@ func main() {
 
 	authHandler := auth.NewHandler(authService, cfg.JWT_SECRET)
 
-	router := httpserver.NewRouter(shortenerHandler, authHandler, analyticsHandler)
+	router := httpserver.NewRouter(cfg.BASEURL, shortenerHandler, authHandler, analyticsHandler)
 
 	log.Printf("listening on :%s", cfg.PORT)
 

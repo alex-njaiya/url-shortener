@@ -10,11 +10,11 @@ type RouteRegistrar interface {
 	RegisterRoutes(r chi.Router)
 }
 
-func NewRouter(registrars ...RouteRegistrar) http.Handler {
+func NewRouter(allowedOrigin string, registrars ...RouteRegistrar) http.Handler {
 	r := chi.NewRouter()
 
 	// middlewares
-	r.Use(CORS)
+	r.Use(CORS(allowedOrigin))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -34,7 +34,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 		Path:     "/",
 		HttpOnly: true,
 		Secure: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   int(tokenExpiry.Seconds()),
 	})
 }
