@@ -4,37 +4,50 @@ import {
   useState,
   type ReactNode,
 } from "react";
-
-interface User {
-    email: string;
-}
+import {
+  registerUser,
+  loginUser,
+  logoutUser,
+  type AuthUser,
+} from "../lib/api-client";
 
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (first_name: string, last_name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  signup: (
+    firstName: string,
+    lastName: string,
+    email: string,
+    password: string
+  ) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading] = useState(false); // TODO: true until an initial "am I logged in" check runs
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  // TODO: replace with a real call to POST /api/login once the auth
-  // domain exists on the backend. For now this just fakes a session
-  // so Header/ProtectedRoute have something real to react to.
-  async function login(email: string, _password: string) {
-    setUser({ email });
+  const [loading] = useState(false);
+
+  async function login(email: string, password: string) {
+    const loggedInUser = await loginUser(email, password);
+    setUser(loggedInUser);
   }
 
-  async function signup(email: string, _password: string) {
-    setUser({ email });
+  async function signup(
+    firstName: string,
+    lastName: string,
+    email: string,
+    password: string
+  ) {
+    const newUser = await registerUser(firstName, lastName, email, password);
+    setUser(newUser);
   }
 
-  function logout() {
+  async function logout() {
+    await logoutUser();
     setUser(null);
   }
 

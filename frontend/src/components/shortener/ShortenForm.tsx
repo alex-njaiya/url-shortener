@@ -35,7 +35,10 @@ function ShortenForm() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-3 sm:flex-row"
+      >
         <input
           type="url"
           required
