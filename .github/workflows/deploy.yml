@@ -32,3 +32,10 @@ jobs:
       - name: Deploy to render
         run: |
           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+  deploy-frontend:          # <- this job is the frontend deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Netlify build
+        run: |
+          curl -X POST "${{ secrets.NETLIFY_BUILD_HOOK_URL }}"
