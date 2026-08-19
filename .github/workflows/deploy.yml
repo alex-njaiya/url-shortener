@@ -12,6 +12,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+
+      - name: Debug secret (temporary - remove after)
+        run: echo "DATABASE_URL length is ${#DATABASE_URL}"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Install go-migrate
         run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
