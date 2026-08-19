@@ -46,8 +46,8 @@ function Hero() {
         Long Links, <span className="text-signal">shortened on the spot</span>
       </h1>
       <p className="max-w-xl text-lg text-muted">
-        Paste a link,get something you would actually want to share. No signup
-        required to shorten -- create an aacount only if you want to track cliks
+        Paste a link, get something you would actually want to share. No signup
+        required to shorten -- create an account only if you want to track clicks
         over time.
       </p>
       <CompressionDemo />

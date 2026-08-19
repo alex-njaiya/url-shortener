@@ -122,7 +122,12 @@ type myURLResponse struct {
 
 func (h *Handler) handleGetMyURLs(w http.ResponseWriter, r *http.Request) {
 	// RequireAuth guarantees this is present -- no need to check `ok`.
-	userID, _ := auth.UserIDFromContext(r.Context())
+	userID, ok := auth.UserIDFromContext(r.Context())
+
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	urls, err := h.service.GetUserURLs(r.Context(), userID)
 	if err != nil {
