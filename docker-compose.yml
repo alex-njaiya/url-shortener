@@ -32,16 +32,18 @@ services:
     build: ./backend
     ports:
       - "${PORT}:${PORT}"
-    environment:
-      - PORT=${PORT}
-      - JWT_SECRET=${JWT_SECRET}
-      - BASE_URL=${BASE_URL}
-      - DATABASE_URL=${DATABASE_URL}
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
+environment:
+  - PORT=${PORT}
+  - JWT_SECRET=${JWT_SECRET}
+  - BASE_URL=${BASE_URL}
+  - DATABASE_URL=${DATABASE_URL}
+  - FRONTEND_URL=${FRONTEND_URL}
+  - APP_ENV=${APP_ENV}
+depends_on:
+  postgres_db:
+    condition: service_healthy
+  migrate:
+    condition: service_completed_successfully
 
 volumes:
   pgdata:

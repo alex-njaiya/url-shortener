@@ -3,6 +3,7 @@ package shortener
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/alex-njaiya/url-shortener/internal/auth"
 	"github.com/go-chi/chi/v5"
@@ -13,22 +14,27 @@ type ClickLogger interface {
 }
 
 type Handler struct {
-	service *Service
-	clicks  ClickLogger
-	baseURL string
+	service   *Service
+	clicks    ClickLogger
+	baseURL   string
+	jwtSecret string
 }
 
-func NewHandler(service *Service, clicks ClickLogger, baseURL string) *Handler {
+func NewHandler(service *Service, clicks ClickLogger, baseURL, jwtSecret string) *Handler {
 	return &Handler{
 		service: service,
 		clicks:  clicks,
 		baseURL: baseURL,
+		jwtSecret: jwtSecret,
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	r.Post("/api/shorten", h.handleShorten)
+	r.With(auth.OptionalAuth(h.jwtSecret)).Post("/api/shorten",h.handleShorten)
 	r.Get("/{code}", h.handleRedirect)
+
+	// requrie auth to get specific user urls
+	r.With(auth.RequireAuth(h.jwtSecret)).Get("/api/my/urls", h.handleGetMyURLs)
 }
 
 type shortenRequest struct {
@@ -44,26 +50,22 @@ type shortenResponse struct {
 func (h *Handler) handleShorten(w http.ResponseWriter, r *http.Request) {
 	var req shortenRequest
 
-	userid, exists := auth.UserIDFromContext(r.Context())
-
-	if !exists {
-		http.Error(w, "userId not found", http.StatusUnauthorized)
-		return
-	}
-
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Example guard clause
-	if h.service == nil {
-		http.Error(w, "Internal server error: missing dependency", http.StatusInternalServerError)
-		return
+		// OptionalAuth attaches a user ID only if the request was
+	// authenticated. exists == false just means "anonymous" -- not
+	// an error, so no early return here.
+	var userIDPtr *int64
+	if userID, exists := auth.UserIDFromContext(r.Context()); exists {
+		userIDPtr = &userID
 	}
 
+
 	// u, err := h.service.ShortenUsingBase62Encode(r.Context(), req.URL)
-	u, err := h.service.ShortenByHashing(r.Context(), &userid, req.URL)
+	u, err := h.service.ShortenByHashing(r.Context(), userIDPtr, req.URL)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -93,3 +95,36 @@ func (h *Handler) handleRedirect(w http.ResponseWriter, r *http.Request) {
 	go h.clicks.LogClick(code, r.Referer(), r.UserAgent())
 	http.Redirect(w, r, u.OriginalURL, http.StatusFound)
 }
+
+
+type myURLResponse struct {
+	ShortCode   string    `json:"short_code"`
+	ShortURL    string    `json:"short_url"`
+	OriginalURL string    `json:"original_url"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (h *Handler) handleGetMyURLs(w http.ResponseWriter, r *http.Request) {
+	// RequireAuth guarantees this is present -- no need to check `ok`.
+	userID, _ := auth.UserIDFromContext(r.Context())
+
+	urls, err := h.service.GetUserURLs(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "failed to get urls", http.StatusInternalServerError)
+		return
+	}
+
+	resp := make([]myURLResponse, 0, len(urls))
+	for _, u := range urls {
+		resp = append(resp, myURLResponse{
+			ShortCode:   u.ShortCode,
+			ShortURL:    h.baseURL + "/" + u.ShortCode,
+			OriginalURL: u.OriginalURL,
+			CreatedAt:   u.CreatedAt,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
