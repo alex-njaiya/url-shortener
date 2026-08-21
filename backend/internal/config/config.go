@@ -10,7 +10,7 @@ type Config struct {
 	DB_URL      string
 	JWT_SECRET  string
 	BASEURL     string
-	FRONTENDURL string
+	FRONTEND_URL string
 	IS_PROD     bool
 }
 
@@ -20,7 +20,7 @@ func Load() (*Config, error) {
 		DB_URL:      os.Getenv("DATABASE_URL"),
 		JWT_SECRET:  os.Getenv("JWT_SECRET"),
 		BASEURL:     getEnv("BASE_URL", "http://localhost:8080"),
-		FRONTENDURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
+		FRONTEND_URL: getEnv("FRONTEND_URL", "http://localhost:5173"),
 		IS_PROD:     getEnv("APP_ENV", "development") == "production",
 	}
 
